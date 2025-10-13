@@ -1,0 +1,185 @@
+/* ฟอนต์ + พื้นหลัง */
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap');
+
+body {
+  font-family: 'Prompt', sans-serif;
+  background: linear-gradient(135deg, #e0f2fe, #ede9fe);
+  color: #444;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* การ์ดหลัก (ใช้ใน login/register/admin/tasks) */
+.card {
+  background-color: #fffafc;
+  border-radius: 20px;
+  border: 1px solid #e9d8fd;
+  box-shadow: 0 6px 16px rgba(160, 140, 255, 0.15);
+  transition: all 0.3s ease;
+}
+.card:hover {
+  box-shadow: 0 8px 22px rgba(160, 140, 255, 0.2);
+}
+
+
+ 
+
+/* ปุ่มสำหรับจัดการผู้ใช้ทั้งหมด */
+.btn-primary {
+  background-color: #bfdbfe;  
+  color: #1e3a8a;             
+  border: none;
+  border-radius: 30px;
+  padding: 8px 20px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
+  transition: all 0.25s ease;
+}
+
+.btn-primary:hover {
+  background-color: #93c5fd;  
+  color: #1e3a8a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
+}
+
+/* ปุ่มจัดการงานของผู้ใช้ */
+.btn-success {
+  background-color: #fbcfe8;   
+  color: #831843;              
+  border: none;
+  border-radius: 30px;
+  padding: 8px 20px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(244, 114, 182, 0.25);
+  transition: all 0.25s ease;
+}
+.btn-success:hover {
+  background-color: #f9a8d4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(244, 114, 182, 0.3);
+}
+
+
+.btn-danger {
+  background-color: #f9a8d4;
+  border: none;
+  border-radius: 30px;
+  padding: 8px 18px;
+}
+.btn-danger:hover {
+  background-color: #f472b6;
+  transform: scale(1.05);
+}
+
+.btn-outline-secondary {
+  border-radius: 30px;
+  border: 1px solid #cbd5e1;
+}
+.btn-outline-secondary:hover {
+  background-color: #e0e7ff;
+  color: #4f46e5;
+}
+
+
+ /* Input / Select / Textarea */
+
+input.form-control,
+textarea.form-control,
+select.form-select {
+  border-radius: 10px;
+  border: 1px solid #d6bcfa;
+  transition: 0.2s;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 5px rgba(167, 139, 250, 0.4);
+}
+
+/* ตาราง (admin, tasks) */
+
+.table {
+  background-color: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.table thead {
+  background-color: #ddd6fe !important;
+  color: #4c1d95 !important;
+  font-weight: 600;
+}
+.table-hover tbody tr:hover {
+  background-color: #f5f3ff;
+}
+
+/* ป้าย role/status */
+.badge.bg-danger {
+  background-color: #f9a8d4 !important; /* pink pastel */
+  color: #fff;
+}
+.badge.bg-primary {
+  background-color: #a5b4fc !important; /* lavender */
+}
+.badge.bg-secondary {
+  background-color: #bae6fd !important; /* sky pastel */
+  color: #0369a1;
+}
+.badge.bg-success {
+  background-color: #bbf7d0 !important; /* green pastel */
+  color: #166534;
+}
+
+
+ /* ฟอร์ม login/register */
+
+form {
+  animation: fadeIn 0.6s ease;
+}
+h2,
+h4 {
+  color: #6d28d9;
+}
+a {
+  color: #818cf8;
+  text-decoration: none;
+}
+a:hover {
+  color: #6366f1;
+  text-decoration: underline;
+}
+
+
+/* ส่วนของ Tasks */
+
+.table-responsive {
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(160, 140, 255, 0.08);
+}
+#tbody td {
+  vertical-align: middle;
+}
+.alert-success {
+  background-color: #ccfbf1;
+  color: #065f46;
+  border: none;
+}
+.alert-danger {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: none;
+}
+
+/* แอนิเมชัน */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Footer */
+
+.text-muted {
+  color: #94a3b8 !important;
+}

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <title>เข้าสู่ระบบ | To-Do App</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body class="bg-light d-flex justify-content-center align-items-center vh-100">
+  <div class="card shadow p-4" style="width: 22rem;">
+    <h2 class="mb-4 text-center">เข้าสู่ระบบ</h2>
+
+    <!-- ใส่ onsubmit="login(event)" -->
+    <form onsubmit="login(event)">
+      <div class="mb-3">
+        <label class="form-label">ชื่อผู้ใช้</label>
+        <input type="text" id="username" class="form-control" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">รหัสผ่าน</label>
+        <input type="password" id="password" class="form-control" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100">เข้าสู่ระบบ</button>
+      <div class="text-center mt-3">
+        <a href="/register.html">สมัครสมาชิก</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Modal สำหรับ Super Admin -->
+  <div class="modal fade" id="superAdminModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">เลือกหน้าที่ต้องการเข้า</h5>
+        </div>
+        <div class="modal-body text-center">
+          <button class="btn btn-primary m-2" onclick="goToAdmin()"> จัดการผู้ใช้ทั้งหมด</button>
+          <button class="btn btn-success m-2" onclick="goToTasks()">จัดการงานของผู้ใช้</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+  async function login(event) {
+    event.preventDefault();
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "เข้าสู่ระบบไม่สำเร็จ");
+        return;
+      }
+
+      //  เก็บ token + role
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.role);
+
+      //  ถ้าเป็น super_admin ให้แสดง modal เลือกหน้า
+      if (data.role === "super_admin") {
+        const modal = new bootstrap.Modal(document.getElementById("superAdminModal"));
+        modal.show();
+      } else {
+        window.location.href = "/tasks.html";
+      }
+
+    } catch (err) {
+      console.error("Login error:", err);
+      alert("เกิดข้อผิดพลาดในระบบ");
+    }
+  }
+
+  function goToAdmin() {
+    window.location.href = "/admin.html";
+  }
+
+  function goToTasks() {
+    window.location.href = "/tasks.html";
+  }
+  </script>
+</body>
+</html>
