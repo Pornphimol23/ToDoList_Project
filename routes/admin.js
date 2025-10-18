@@ -21,9 +21,6 @@ router.get("/users", verifyToken, requireRole(["super_admin"]), listUsers);
 //  ลบผู้ใช้
 router.delete("/users/:id", verifyToken, requireRole(["super_admin"]), deleteUser);
 
-// เปลี่ยน role ผู้ใช้
-router.put("/users/:id/role", verifyToken, requireRole(["super_admin"]), changeRole);
-
 //  export database (backup)
 router.get("/export", verifyToken, requireRole(["super_admin"]), exportDatabase);
 
