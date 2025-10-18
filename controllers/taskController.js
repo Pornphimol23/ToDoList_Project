@@ -1,6 +1,7 @@
+//controllers/taskController.js
 import { pool } from '../config/db.js';
 
-// 🟢 แสดงงานทั้งหมดของผู้ใช้
+// แสดงงานทั้งหมดของผู้ใช้
 export async function listMyTasks(req, res) {
   try {
     const userId = req.user?.id || 1;
@@ -28,7 +29,7 @@ export async function listMyTasks(req, res) {
 }
 
 // join จากตาราง statuses และ priorities เพื่อหา id ของชื่อ
-// 🟢 เพิ่มงานใหม่
+//  เพิ่มงานใหม่
 export async function createTask(req, res) {
   try {
     const userId = req.user?.id || 1;
@@ -59,7 +60,7 @@ export async function createTask(req, res) {
 
 
 
-// 🟢 อัปเดตงาน
+//  อัปเดตงาน
 export async function updateTask(req, res) {
   try {
     const { id } = req.params;
@@ -89,7 +90,7 @@ export async function updateTask(req, res) {
 }
 
 
-// 🟢 ลบงาน
+// ลบงาน
 export async function deleteTask(req, res) {
   try {
     const { id } = req.params;

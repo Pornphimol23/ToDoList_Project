@@ -1,92 +1,133 @@
 // controllers/adminController.js
-import { query } from '../config/db.js';
-import { spawn } from 'child_process';
+import { query } from "../config/db.js";
+import { spawn } from "child_process";
 
+/* 🧾 ดึงรายชื่อผู้ใช้ทั้งหมด (เฉพาะ Super Admin) */
 export async function listUsers(req, res, next) {
   try {
-    const { rows } = await query(`
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Forbidden: Super Admin only" });
+    }
+
+    const { rows } = await query(
+      `
       SELECT u.id, u.username, u.is_active, r.name AS role, u.created_at
-      FROM users u JOIN roles r ON r.id=u.role_id
+      FROM users u
+      JOIN roles r ON r.id = u.role_id
       ORDER BY u.id ASC
-    `);
-    res.json(rows.map(u => ({
+      `
+    );
+
+    const formatted = rows.map((u) => ({
       ...u,
-      created_at: new Date(u.created_at).toISOString().slice(0,16).replace('T',' ')
-    })));
+      created_at: new Date(u.created_at).toISOString().slice(0, 16).replace("T", " "),
+    }));
+
+    res.json(formatted);
   } catch (e) {
     next(e);
   }
 }
 
+/* ❌ ลบผู้ใช้ (เฉพาะ Super Admin) */
 export async function deleteUser(req, res, next) {
   try {
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Forbidden: Super Admin only" });
+    }
+
     const { id } = req.params;
-    if (Number(id) === req.user.id)
-      return res.status(400).json({ message: 'Cannot delete yourself' });
 
-    const userData = await query(
-      'SELECT u.id, r.name AS role FROM users u JOIN roles r ON r.id=u.role_id WHERE u.id=$1',
-      [id]
-    );
-    if (!userData.rowCount)
-      return res.status(404).json({ message: 'User not found' });
+    // ป้องกัน Super Admin ลบตัวเอง
+    if (Number(id) === req.user.id) {
+      return res.status(400).json({ message: "Cannot delete yourself" });
+    }
 
-    const targetRole = userData.rows[0].role;
-    if (req.user.role === 'admin' && targetRole !== 'user')
-      return res.status(403).json({ message: 'Admin can delete only normal users' });
-    if (req.user.role === 'super_admin' && targetRole === 'super_admin')
-      return res.status(403).json({ message: 'Super admin cannot delete another super admin' });
+    const userData = await query("SELECT id, role_id FROM users WHERE id=$1", [id]);
+    if (!userData.rowCount) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    await query('DELETE FROM users WHERE id=$1', [id]);
-    res.status(204).send();
+    await query("DELETE FROM users WHERE id=$1", [id]);
+    res.status(200).json({ message: "User deleted successfully" });
   } catch (e) {
     next(e);
   }
 }
 
+/* 🔁 เปลี่ยนสิทธิ์ผู้ใช้ (เฉพาะ Super Admin) */
 export async function changeRole(req, res, next) {
   try {
-    if (req.user.role !== 'super_admin')
-      return res.status(403).json({ message: 'Only super admin can change roles' });
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Forbidden: Super Admin only" });
+    }
 
     const { id } = req.params;
     const { role } = req.body;
-    if (Number(id) === req.user.id)
-      return res.status(400).json({ message: 'Cannot change your own role' });
 
-    if (!['user', 'admin', 'super_admin'].includes(role))
-      return res.status(400).json({ message: 'Invalid role' });
+    if (Number(id) === req.user.id) {
+      return res.status(400).json({ message: "Cannot change your own role" });
+    }
 
-    const roleRow = await query('SELECT id FROM roles WHERE name=$1', [role]);
-    if (!roleRow.rowCount)
-      return res.status(400).json({ message: 'Role not found' });
+    // อนุญาตเฉพาะ 2 role
+    if (!["user", "super_admin"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role: must be user or super_admin" });
+    }
+
+    const roleRow = await query("SELECT id FROM roles WHERE name=$1", [role]);
+    if (!roleRow.rowCount) {
+      return res.status(400).json({ message: "Role not found in database" });
+    }
 
     const roleId = roleRow.rows[0].id;
-    await query('UPDATE users SET role_id=$1 WHERE id=$2', [roleId, id]);
-    res.status(200).json({ message: 'Role updated' });
+    await query("UPDATE users SET role_id=$1 WHERE id=$2", [roleId, id]);
+    res.status(200).json({ message: `Role updated to ${role}` });
   } catch (e) {
     next(e);
   }
 }
 
+/* 💾 สำรองฐานข้อมูล (เฉพาะ Super Admin) */
 export async function exportDatabase(req, res, next) {
   try {
-    if (req.user.role !== 'super_admin')
-      return res.status(403).json({ message: 'Forbidden' });
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Forbidden: Super Admin only" });
+    }
 
-    const dumpCmd = process.env.PG_DUMP_PATH || 'pg_dump';
-    const dbUrl = `postgresql://${process.env.PGUSER}:${encodeURIComponent(process.env.PGPASSWORD)}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
+    const dumpCmd = process.env.PG_DUMP_PATH || "pg_dump";
+    const dbUrl = `postgresql://${process.env.PGUSER}:${encodeURIComponent(
+      process.env.PGPASSWORD
+    )}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
 
-    res.setHeader('Content-Type', 'application/sql');
-    const ts = new Date().toISOString().replace(/[:.]/g, '-');
-    res.setHeader('Content-Disposition', `attachment; filename="backup-${ts}.sql"`);
+    res.setHeader("Content-Type", "application/sql");
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    res.setHeader("Content-Disposition", `attachment; filename="backup-${ts}.sql"`);
 
     const child = spawn(dumpCmd, [dbUrl]);
+
+    // ส่งสตรีมผลลัพธ์ของ pg_dump ไปให้ client ดาวน์โหลด
     child.stdout.pipe(res);
-    child.stderr.on('data', (d) => console.error('pg_dump:', d.toString()));
-    child.on('error', (err) => {
-      console.error('pg_dump failed:', err);
-      res.status(500).json({ message: 'pg_dump failed', error: err.message });
+
+    // log error ของ pg_dump
+    child.stderr.on("data", (d) => console.error("pg_dump:", d.toString()));
+
+    // ถ้า spawn ตัวโปรเซสมีปัญหา
+    child.on("error", (err) => {
+      console.error("pg_dump failed:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ message: "pg_dump failed", error: err.message });
+      } else {
+        // ถ้าหัวข้อถูกส่งไปแล้ว ปิดการเชื่อมต่อ
+        res.end();
+      }
+    });
+
+    // (เสริม) ปิด response เมื่อ pg_dump จบ
+    child.on("close", (code) => {
+      if (code !== 0 && !res.headersSent) {
+        res.status(500).json({ message: `pg_dump exited with code ${code}` });
+      }
+      // ถ้าส่งสตรีมเสร็จแล้ว res จะปิดเองจาก pipe
     });
   } catch (e) {
     next(e);
