@@ -5,9 +5,6 @@ dotenv.config();
 
 const { Pool } = pkg;
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // ใช้ sslmode=require จาก .env โดยตรง
-});
 
 export async function query(text, params) {
   const start = Date.now();
