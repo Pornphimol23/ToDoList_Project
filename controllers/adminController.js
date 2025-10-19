@@ -55,37 +55,7 @@ export async function deleteUser(req, res, next) {
   }
 }
 
-/* 🔁 เปลี่ยนสิทธิ์ผู้ใช้ (เฉพาะ Super Admin) */
-export async function changeRole(req, res, next) {
-  try {
-    if (req.user.role !== "super_admin") {
-      return res.status(403).json({ message: "Forbidden: Super Admin only" });
-    }
 
-    const { id } = req.params;
-    const { role } = req.body;
-
-    if (Number(id) === req.user.id) {
-      return res.status(400).json({ message: "Cannot change your own role" });
-    }
-
-    // อนุญาตเฉพาะ 2 role
-    if (!["user", "super_admin"].includes(role)) {
-      return res.status(400).json({ message: "Invalid role: must be user or super_admin" });
-    }
-
-    const roleRow = await query("SELECT id FROM roles WHERE name=$1", [role]);
-    if (!roleRow.rowCount) {
-      return res.status(400).json({ message: "Role not found in database" });
-    }
-
-    const roleId = roleRow.rows[0].id;
-    await query("UPDATE users SET role_id=$1 WHERE id=$2", [roleId, id]);
-    res.status(200).json({ message: `Role updated to ${role}` });
-  } catch (e) {
-    next(e);
-  }
-}
 
 /* 💾 สำรองฐานข้อมูล (เฉพาะ Super Admin) */
 export async function exportDatabase(req, res, next) {
