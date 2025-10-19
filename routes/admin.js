@@ -1,6 +1,8 @@
 // routes/admin.js
 import { Router } from "express";
 import { verifyToken, requireRole } from "../middleware/auth.js";
+import { listUsers, deleteUser, exportDatabase } from "../controllers/adminController.js";
+
 
 const router = Router();
 
