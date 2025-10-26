@@ -1,3 +1,4 @@
+<!-- tasks.html -->
 <!doctype html>
 <html lang="th">
 <head>
@@ -43,7 +44,7 @@
 
     <!-- ตารางงาน -->
     <div class="col-lg-8">
-      <div class="card">
+      <div class="card shadow-sm">
         <div class="card-body">
           <div class="d-flex gap-2 mb-3">
             <input class="form-control" id="q" placeholder="ค้นหา...">
@@ -119,19 +120,19 @@
 const token = localStorage.getItem("token");
 const role = localStorage.getItem("role");
 
-// ตรวจ token
+// ✅ ตรวจ token
 if (!token) {
   alert("กรุณาเข้าสู่ระบบก่อน");
   window.location.href = "/login.html";
 }
 
-// ตรวจ role
+// ✅ ตรวจ role (อนุญาตเฉพาะ user หรือ super_admin)
 if (role !== "user" && role !== "super_admin") {
   alert("สิทธิ์ไม่ถูกต้อง");
   window.location.href = "/login.html";
 }
 
-// ฟังก์ชัน fetch JSON พร้อม header
+// ✅ ฟังก์ชัน fetch JSON พร้อม header
 async function fetchJSON(url, options = {}) {
   const res = await fetch(url, {
     headers: {
@@ -147,7 +148,9 @@ async function fetchJSON(url, options = {}) {
 let statuses = [];
 let priorities = [];
 
-// โหลด meta (สถานะ/ความสำคัญ)
+/* ==========================================================
+   📌 โหลด meta (สถานะ / ความสำคัญ)
+========================================================== */
 async function loadMeta() {
   [statuses, priorities] = await Promise.all([
     fetch("/api/meta/statuses").then(r => r.json()),
@@ -164,9 +167,19 @@ async function loadMeta() {
 
   editStatus.innerHTML = statuses.map(s => `<option value="${s}">${s}</option>`).join("");
   editPriority.innerHTML = priorities.map(p => `<option value="${p}">${p}</option>`).join("");
+
+  // ✅ ถ้าเป็น super_admin → ซ่อนฟอร์มเพิ่มงาน
+  if (role === "super_admin") {
+    const addTaskForm = document.getElementById("createForm");
+    if (addTaskForm) {
+      addTaskForm.closest(".card").style.display = "none";
+    }
+  }
 }
 
-// โหลดข้อมูลงานทั้งหมด
+/* ==========================================================
+   🧾 โหลดข้อมูลงานทั้งหมด
+========================================================== */
 async function loadTasks() {
   const params = new URLSearchParams();
   if (q.value) params.set("q", q.value);
@@ -175,12 +188,36 @@ async function loadTasks() {
 
   try {
     const list = await fetchJSON("/api/tasks?" + params.toString());
+
+    // ✅ ปรับหัวตาราง: เพิ่ม "เจ้าของงาน" เฉพาะ Super Admin
+    const thead = document.querySelector("thead tr");
+    thead.innerHTML = role === "super_admin"
+      ? `
+        <th>หัวข้อ</th>
+        <th>เจ้าของงาน</th>
+        <th>สถานะ</th>
+        <th>ความสำคัญ</th>
+        <th>กำหนดส่ง</th>
+        <th></th>
+      `
+      : `
+        <th>หัวข้อ</th>
+        <th>สถานะ</th>
+        <th>ความสำคัญ</th>
+        <th>กำหนดส่ง</th>
+        <th></th>
+      `;
+
+    // ✅ แสดงข้อมูลในตาราง
     tbody.innerHTML = list.map(row => `
       <tr>
         <td>
           <div class="fw-semibold">${row.title}</div>
           <div class="small text-muted">${row.description || ""}</div>
         </td>
+
+        ${role === "super_admin" ? `<td><span class="badge bg-light text-dark">${row.owner || "-"}</span></td>` : ""}
+
         <td><span class="badge bg-secondary text-uppercase">${row.status}</span></td>
         <td><span class="badge bg-info text-dark text-uppercase">${row.priority}</span></td>
         <td>${row.due_date ? new Date(row.due_date).toLocaleDateString('th-TH') : ''}</td>
@@ -194,7 +231,9 @@ async function loadTasks() {
   }
 }
 
-// ➕ เพิ่มงานใหม่
+/* ==========================================================
+   ➕ เพิ่มงานใหม่
+========================================================== */
 createForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   createMsg.innerHTML = "";
@@ -209,17 +248,20 @@ createForm.addEventListener("submit", async (e) => {
     createForm.reset();
     await loadTasks();
     createMsg.innerHTML = '<div class="alert alert-success">บันทึกแล้ว</div>';
+    setTimeout(() => (createMsg.innerHTML = ""), 2000);
   } catch (err) {
     createMsg.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
   }
 });
 
-// ✏️ ฟังก์ชันเปิด modal แก้ไข
+/* ==========================================================
+   ✏️ ฟังก์ชันแก้ไขงาน
+========================================================== */
 async function editTask(id) {
   try {
     const tasks = await fetchJSON("/api/tasks");
     const task = tasks.find(t => t.id === id);
-    if (!task) return alert("ไม่พบนงานที่ต้องการแก้ไข");
+    if (!task) return alert("ไม่พบงานที่ต้องการแก้ไข");
 
     const form = document.getElementById("editForm");
     form.id.value = task.id;
@@ -229,14 +271,15 @@ async function editTask(id) {
     form.status.value = task.status || "pending";
     form.priority.value = task.priority || "medium";
 
-    const modal = new bootstrap.Modal(document.getElementById("editModal"));
-    modal.show();
+    new bootstrap.Modal(document.getElementById("editModal")).show();
   } catch (err) {
     alert("❌ โหลดข้อมูลงานไม่สำเร็จ: " + err.message);
   }
 }
 
-// 🧾 เมื่อบันทึกใน modal
+/* ==========================================================
+   🧾 บันทึกการแก้ไขใน Modal
+========================================================== */
 editForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const fd = new FormData(editForm);
@@ -257,7 +300,9 @@ editForm.addEventListener("submit", async (e) => {
   }
 });
 
-// 🗑️ ลบงาน
+/* ==========================================================
+   🗑️ ลบงาน
+========================================================== */
 async function removeTask(id) {
   if (!confirm("ต้องการลบงานนี้?")) return;
   try {
@@ -269,7 +314,15 @@ async function removeTask(id) {
   }
 }
 
-// เริ่มโหลด
+/* ==========================================================
+   🔍 ค้นหาแบบเรียลไทม์
+========================================================== */
+q.addEventListener("input", () => {
+  clearTimeout(window.searchTimeout);
+  window.searchTimeout = setTimeout(() => loadTasks(), 400);
+});
+
+// ✅ เริ่มโหลดข้อมูล
 loadMeta().then(loadTasks);
 </script>
 </body>

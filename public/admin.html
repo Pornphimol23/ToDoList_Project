@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="th">
   <head>
@@ -10,44 +9,42 @@
       rel="stylesheet"
     />
   </head>
+
   <body class="bg-light">
     <div class="container py-5">
+      <!-- ส่วนหัว -->
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold">รายชื่อผู้ใช้ทั้งหมด</h2>
         <button class="btn btn-danger" onclick="logout()">ออกจากระบบ</button>
       </div>
 
+      <!-- ตารางรายชื่อผู้ใช้ -->
       <div class="card shadow-sm">
         <div class="card-body">
-  <div class="d-flex justify-content-end mb-3">
-    <button class="btn btn-export me-2" onclick="exportDatabase()"> สำรองฐานข้อมูล</button>
-  </div>
-
-  <table class="table table-hover align-middle text-center mb-0">
-    <thead class="table-dark">
-      <tr>
-        <th scope="col">ID</th>
-        <th scope="col">ชื่อผู้ใช้</th>
-        <th scope="col">สิทธิ์</th>
-        <th scope="col">วันที่สร้าง</th>
-        <th scope="col">การจัดการ</th>
-      </tr>
-    </thead>
-    <tbody id="userTable">
-      <tr>
-        <td colspan="5" class="text-muted">กำลังโหลดข้อมูล...</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
+          <table class="table table-hover align-middle text-center mb-0">
+            <thead class="table-dark">
+              <tr>
+                <th scope="col">ID</th>
+                <th scope="col">ชื่อผู้ใช้</th>
+                <th scope="col">สิทธิ์</th>
+                <th scope="col">วันที่สร้าง</th>
+                <th scope="col">การจัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="userTable">
+              <tr>
+                <td colspan="5" class="text-muted">กำลังโหลดข้อมูล...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
 
     <script>
       const token = localStorage.getItem("token");
       const role = localStorage.getItem("role");
 
+      // ตรวจสิทธิ์เข้าเพจ
       if (!token) {
         alert("กรุณาเข้าสู่ระบบก่อน");
         window.location.href = "/login.html";
@@ -55,42 +52,44 @@
         alert("เฉพาะ Super Admin เท่านั้นที่เข้าได้");
         window.location.href = "/tasks.html";
       } else {
+        loadUsers();
+      }
+
+      // โหลดรายชื่อผู้ใช้ทั้งหมด
+      function loadUsers() {
         fetch("/api/admin/users", {
           headers: { Authorization: "Bearer " + token },
         })
           .then((res) => {
-            if (res.status === 403) {
-              alert("คุณไม่มีสิทธิ์เข้าหน้านี้");
-              window.location.href = "/tasks.html";
-              return;
-            } else if (res.status === 401) {
-              alert("กรุณาเข้าสู่ระบบใหม่");
-              window.location.href = "/login.html";
-              return;
-            } else if (!res.ok) {
-              throw new Error("โหลดข้อมูลไม่สำเร็จ");
-            }
+            if (!res.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
             return res.json();
           })
           .then((users) => {
-            if (!users) return;
-            console.log("Loaded users:", users);
             const table = document.getElementById("userTable");
             table.innerHTML = users
               .map(
                 (u) => `
-                <tr>
-                  <td>${u.id}</td>
-                  <td>${u.username}</td>
-                  <td><span class="badge bg-${
+              <tr>
+                <td>${u.id}</td>
+                <td>${u.username}</td>
+                <td>
+                  <span class="badge bg-${
+                    u.role === "super_admin" ? "danger" : "secondary"
+                  }">${u.role}</span>
+                </td>
+                <td>${u.created_at}</td>
+                <td>
+                  ${
                     u.role === "super_admin"
-                      ? "danger"
-                      : u.role === "admin"
-                      ? "primary"
-                      : "secondary"
-                  }">${u.role}</span></td>
-                  <td>${u.created_at}</td>
-                </tr>`
+                      ? "-"
+                      : `
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${u.id})">
+                          ลบผู้ใช้
+                        </button>
+                      `
+                  }
+                </td>
+              </tr>`
               )
               .join("");
           })
@@ -100,14 +99,54 @@
           });
       }
 
+      // ลบผู้ใช้
+      function deleteUser(id) {
+        if (!confirm("ต้องการลบผู้ใช้นี้จริงหรือไม่?")) return;
+
+        fetch(`/api/admin/users/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + token },
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error("ลบผู้ใช้ไม่สำเร็จ");
+            alert("ลบผู้ใช้เรียบร้อยแล้ว");
+            loadUsers();
+          })
+          .catch((err) => {
+            console.error(err);
+            alert("เกิดข้อผิดพลาดในการลบผู้ใช้");
+          });
+      }
+
+      // เปลี่ยนรหัสผ่านของตัวเอง
+      function changePassword() {
+        const oldPassword = document.getElementById("oldPassword").value;
+        const newPassword = document.getElementById("newPassword").value;
+
+        fetch("/api/admin/change-password", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify({ oldPassword, newPassword }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            alert(data.message || "เกิดข้อผิดพลาด");
+          })
+          .catch((err) => {
+            console.error(err);
+            alert("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน");
+          });
+      }
+
+      // ออกจากระบบ
       function logout() {
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         window.location.href = "/login.html";
       }
-     
-
-
     </script>
   </body>
 </html>
