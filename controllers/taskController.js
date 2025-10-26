@@ -2,14 +2,37 @@
 import { pool } from '../config/db.js';
 
 /* ==========================================================
-   🧾 แสดงงานทั้งหมดของผู้ใช้
+   🧾 แสดงงานทั้งหมดของผู้ใช้ + รองรับการค้นหาและกรอง
 ========================================================== */
 export async function listMyTasks(req, res) {
   try {
     const userId = req.user?.id || 1;
+    const { q, status, priority } = req.query;
 
-    const result = await pool.query(
-      `
+    // เงื่อนไข dynamic สำหรับ filter
+    let conditions = ['t.user_id = $1'];
+    let params = [userId];
+    let idx = 2;
+
+    if (q) {
+      conditions.push(`(t.title ILIKE $${idx} OR t.description ILIKE $${idx})`);
+      params.push(`%${q}%`);
+      idx++;
+    }
+
+    if (status) {
+      conditions.push(`s.name = $${idx}`);
+      params.push(status);
+      idx++;
+    }
+
+    if (priority) {
+      conditions.push(`p.name = $${idx}`);
+      params.push(priority);
+      idx++;
+    }
+
+    const query = `
       SELECT
         t.id,
         t.title,
@@ -22,12 +45,11 @@ export async function listMyTasks(req, res) {
       FROM tasks t
       LEFT JOIN statuses s ON t.status_id = s.id
       LEFT JOIN priorities p ON t.priority_id = p.id
-      WHERE t.user_id = $1
+      WHERE ${conditions.join(' AND ')}
       ORDER BY t.id ASC
-      `,
-      [userId]
-    );
+    `;
 
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error('❌ Error listing tasks:', err.message);

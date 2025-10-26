@@ -72,7 +72,49 @@
   </div>
 </div>
 
+<!-- ✅ Modal สำหรับแก้ไขงาน -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="editForm">
+        <div class="modal-header">
+          <h5 class="modal-title">แก้ไขงาน</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="id">
+          <div class="mb-2">
+            <label class="form-label">หัวข้อ</label>
+            <input class="form-control" name="title" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">รายละเอียด</label>
+            <textarea class="form-control" name="description" rows="3"></textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">กำหนดส่ง</label>
+            <input type="date" class="form-control" name="due_date">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">สถานะ</label>
+            <select class="form-select" name="status" id="editStatus"></select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">ความสำคัญ</label>
+            <select class="form-select" name="priority" id="editPriority"></select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary">บันทึก</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- 🔽 Script ส่วนท้าย -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 const token = localStorage.getItem("token");
 const role = localStorage.getItem("role");
@@ -102,9 +144,12 @@ async function fetchJSON(url, options = {}) {
   return res.json();
 }
 
-// โหลด meta
+let statuses = [];
+let priorities = [];
+
+// โหลด meta (สถานะ/ความสำคัญ)
 async function loadMeta() {
-  const [statuses, priorities] = await Promise.all([
+  [statuses, priorities] = await Promise.all([
     fetch("/api/meta/statuses").then(r => r.json()),
     fetch("/api/meta/priorities").then(r => r.json()),
   ]);
@@ -116,9 +161,12 @@ async function loadMeta() {
     statuses.map(s => `<option value="${s}">${s}</option>`).join("");
   filterPriority.innerHTML = `<option value="">ความสำคัญทั้งหมด</option>` +
     priorities.map(p => `<option value="${p}">${p}</option>`).join("");
+
+  editStatus.innerHTML = statuses.map(s => `<option value="${s}">${s}</option>`).join("");
+  editPriority.innerHTML = priorities.map(p => `<option value="${p}">${p}</option>`).join("");
 }
 
-// โหลดงาน
+// โหลดข้อมูลงานทั้งหมด
 async function loadTasks() {
   const params = new URLSearchParams();
   if (q.value) params.set("q", q.value);
@@ -146,7 +194,7 @@ async function loadTasks() {
   }
 }
 
-// เพิ่มงานใหม่
+// ➕ เพิ่มงานใหม่
 createForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   createMsg.innerHTML = "";
@@ -166,37 +214,50 @@ createForm.addEventListener("submit", async (e) => {
   }
 });
 
-// ✅ ฟังก์ชันแก้ไข (prompt พร้อมค่าปัจจุบัน)
+// ✏️ ฟังก์ชันเปิด modal แก้ไข
 async function editTask(id) {
   try {
     const tasks = await fetchJSON("/api/tasks");
     const task = tasks.find(t => t.id === id);
     if (!task) return alert("ไม่พบนงานที่ต้องการแก้ไข");
 
-    const title = prompt("แก้ไขหัวข้อ:", task.title);
-    if (title === null) return;
-    const description = prompt("แก้ไขรายละเอียด:", task.description || "");
-    if (description === null) return;
-    const due_date = prompt("แก้ไขกำหนดส่ง (YYYY-MM-DD):", task.due_date || "");
-    if (due_date === null) return;
-    const status = prompt("แก้ไขสถานะ (pending, in-progress, done):", task.status || "pending");
-    if (status === null) return;
-    const priority = prompt("แก้ไขความสำคัญ (low, medium, high):", task.priority || "medium");
-    if (priority === null) return;
+    const form = document.getElementById("editForm");
+    form.id.value = task.id;
+    form.title.value = task.title;
+    form.description.value = task.description || "";
+    form.due_date.value = task.due_date ? task.due_date.split("T")[0] : "";
+    form.status.value = task.status || "pending";
+    form.priority.value = task.priority || "medium";
 
+    const modal = new bootstrap.Modal(document.getElementById("editModal"));
+    modal.show();
+  } catch (err) {
+    alert("❌ โหลดข้อมูลงานไม่สำเร็จ: " + err.message);
+  }
+}
+
+// 🧾 เมื่อบันทึกใน modal
+editForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(editForm);
+  const payload = Object.fromEntries(fd.entries());
+  const id = payload.id;
+  delete payload.id;
+
+  try {
     await fetchJSON("/api/tasks/" + id, {
       method: "PUT",
-      body: JSON.stringify({ title, description, due_date, status, priority }),
+      body: JSON.stringify(payload),
     });
-
     await loadTasks();
+    bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
     alert("✅ อัปเดตข้อมูลงานเรียบร้อยแล้ว!");
   } catch (err) {
     alert("❌ เกิดข้อผิดพลาด: " + err.message);
   }
-}
+});
 
-// ลบงาน
+// 🗑️ ลบงาน
 async function removeTask(id) {
   if (!confirm("ต้องการลบงานนี้?")) return;
   try {
@@ -208,6 +269,7 @@ async function removeTask(id) {
   }
 }
 
+// เริ่มโหลด
 loadMeta().then(loadTasks);
 </script>
 </body>
