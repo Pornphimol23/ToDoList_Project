@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+
 import authRoutes from './routes/auth.js';
 import taskRoutes from './routes/tasks.js';
 import adminRoutes from './routes/admin.js';

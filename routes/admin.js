@@ -4,8 +4,6 @@ import { verifyToken, requireRole } from "../middleware/auth.js";
 import {
   listUsers,
   deleteUser,
-  exportDatabase,
-  changeOwnPassword,
 } from "../controllers/adminController.js";
 
 const router = Router();
@@ -20,11 +18,5 @@ router.get("/users", verifyToken, requireRole(["super_admin"]), listUsers);
 
 /* ❌ ลบผู้ใช้ (เฉพาะ Super Admin) */
 router.delete("/users/:id", verifyToken, requireRole(["super_admin"]), deleteUser);
-
-/* 🔑 ผู้ใช้เปลี่ยนรหัสของตัวเอง */
-router.put("/change-password", verifyToken, changeOwnPassword);
-
-/* 💾 สำรองฐานข้อมูล (เฉพาะ Super Admin) */
-router.get("/export", verifyToken, requireRole(["super_admin"]), exportDatabase);
 
 export default router;
